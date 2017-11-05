@@ -21,7 +21,10 @@
  */
 package org.iotivity.cloud.accountserver;
 
+import java.io.IOException;
+import java.net.InetAddress;
 import java.net.InetSocketAddress;
+import java.net.Socket;
 import java.util.Scanner;
 
 import org.iotivity.cloud.accountserver.db.AccountDBManager;
@@ -51,6 +54,18 @@ public class AccountServer {
     private static String  databaseHost;
     private static String  webLogHost;
 
+    private static boolean healthCheck(String host, int port) {
+        System.out.println("health check "+host+":"+port+"...");
+        try (Socket s = new Socket(host, port)) {
+            System.out.println("health check was successful");
+            return true;
+
+        } catch (IOException ex) {
+            System.out.println(host+":"+port+" not available...");
+            return false;
+        }
+    }
+
     public static void main(String[] args) throws Exception {
         System.out.println("-----Account SERVER-----");
         Log.Init();
@@ -64,6 +79,11 @@ public class AccountServer {
         if (webLogHost != null)
             Log.InitWebLog(webLogHost,
                     AccountServer.class.getSimpleName().toString());
+
+        while (!healthCheck("135.10.1.4",27100)) {
+            Thread.sleep(2000);
+            System.out.println("can not connect to MONGO DB...");
+        }
 
         AccountDBManager.createInstance(databaseHost);
 
@@ -90,7 +110,7 @@ public class AccountServer {
 
         System.out.println("press 'q' to terminate");
 
-        while (!in.nextLine().equals("q"));
+        while (in.nextLine()==null || !in.nextLine().equals("q"));
 
         in.close();
 
